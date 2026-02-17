@@ -111,6 +111,25 @@ Dashboard disponibile su:
 - `Indicatore raw` (`ui_text`) mostra l'ultimo pacchetto grezzo generato
 - `Indicatore ultimo allarme` (`ui_text`) mostra l'ultimo evento sopra soglia
 
+## Integrazione Tapo L530 (controllo reale)
+
+Il file `flows.json` include anche un tab `Tapo Lab - Lampadina` con:
+- poll periodico stato lampadina
+- controllo ON/OFF da dashboard
+- controllo brightness da dashboard
+- publish stato su topic MQTT `iot/lab/tapo/l530/status`
+
+Per usare i nodi Tapo:
+1. Installa `node-red-contrib-tplink-tapo-connect-api` nel container Node-RED.
+2. Importa `flows.json` e fai deploy.
+3. Apri i nodi `tplink_status`, `tplink_turn_on`, `tplink_turn_off`, `tplink_brightness`.
+4. Inserisci configurazione device (`searchMode: ip` e IP lampadina L530).
+5. Inserisci le credenziali account Tapo richieste dai nodi.
+
+Nota sicurezza:
+- Le credenziali Tapo non vanno committate su Git.
+- Tienile solo nella configurazione runtime di Node-RED (`flows_cred.json`).
+
 ## Configurazione Mosquitto
 
 In `mosquitto/mosquitto.conf`:

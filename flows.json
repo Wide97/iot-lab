@@ -37,6 +37,28 @@
     "className": ""
   },
   {
+    "id": "ui_group_tapo_control",
+    "type": "ui_group",
+    "name": "Tapo Lampadina",
+    "tab": "ui_tab_iot_lab",
+    "order": 3,
+    "disp": true,
+    "width": "12",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "ui_group_tapo_status",
+    "type": "ui_group",
+    "name": "Tapo Stato",
+    "tab": "ui_tab_iot_lab",
+    "order": 4,
+    "disp": true,
+    "width": "12",
+    "collapse": false,
+    "className": ""
+  },
+  {
     "id": "mqtt_broker_local",
     "type": "mqtt-broker",
     "name": "Mosquitto Local",
@@ -66,6 +88,13 @@
     "willMsg": {},
     "userProps": "",
     "sessionExpiry": ""
+  },
+  {
+    "id": "tab_tapo_lab",
+    "type": "tab",
+    "label": "Tapo Lab - Lampadina",
+    "disabled": false,
+    "info": "Controllo reale lampadina Tapo L530: on/off, brightness, stato dashboard e publish MQTT."
   },
   {
     "id": "inject_sensor_tick",
@@ -573,6 +602,374 @@
     "className": "",
     "x": 1780,
     "y": 20,
+    "wires": []
+  },
+  {
+    "id": "inject_tapo_poll",
+    "type": "inject",
+    "z": "tab_tapo_lab",
+    "name": "Poll stato lampadina (15s)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "15",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "1",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 190,
+    "y": 100,
+    "wires": [
+      [
+        "tapo_status_node"
+      ]
+    ]
+  },
+  {
+    "id": "ui_switch_tapo_power",
+    "type": "ui_switch",
+    "z": "tab_tapo_lab",
+    "name": "Switch lampadina",
+    "label": "Lampadina ON/OFF",
+    "tooltip": "",
+    "group": "ui_group_tapo_control",
+    "order": 1,
+    "width": "6",
+    "height": "1",
+    "passthru": true,
+    "decouple": "false",
+    "topic": "",
+    "style": "",
+    "onvalue": "true",
+    "onvalueType": "bool",
+    "onicon": "",
+    "oncolor": "",
+    "offvalue": "false",
+    "offvalueType": "bool",
+    "officon": "",
+    "offcolor": "",
+    "animate": false,
+    "className": "",
+    "x": 180,
+    "y": 180,
+    "wires": [
+      [
+        "switch_tapo_power"
+      ]
+    ]
+  },
+  {
+    "id": "switch_tapo_power",
+    "type": "switch",
+    "z": "tab_tapo_lab",
+    "name": "Instrada ON/OFF",
+    "property": "payload",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "false"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 2,
+    "x": 420,
+    "y": 180,
+    "wires": [
+      [
+        "tapo_turn_on_node"
+      ],
+      [
+        "tapo_turn_off_node"
+      ]
+    ]
+  },
+  {
+    "id": "tapo_turn_on_node",
+    "type": "tplink_turn_on",
+    "z": "tab_tapo_lab",
+    "name": "Tapo ON",
+    "deviceIp": "",
+    "deviceAlias": "",
+    "deviceIpRange": "",
+    "searchMode": "ip",
+    "x": 640,
+    "y": 160,
+    "wires": [
+      [
+        "delay_tapo_refresh"
+      ]
+    ]
+  },
+  {
+    "id": "tapo_turn_off_node",
+    "type": "tplink_turn_off",
+    "z": "tab_tapo_lab",
+    "name": "Tapo OFF",
+    "deviceIp": "",
+    "deviceAlias": "",
+    "deviceIpRange": "",
+    "searchMode": "ip",
+    "x": 640,
+    "y": 200,
+    "wires": [
+      [
+        "delay_tapo_refresh"
+      ]
+    ]
+  },
+  {
+    "id": "ui_slider_tapo_brightness",
+    "type": "ui_slider",
+    "z": "tab_tapo_lab",
+    "name": "Brightness lampadina",
+    "label": "Brightness",
+    "tooltip": "",
+    "group": "ui_group_tapo_control",
+    "order": 2,
+    "width": "12",
+    "height": "1",
+    "passthru": true,
+    "outs": "end",
+    "topic": "",
+    "min": 1,
+    "max": "100",
+    "step": 1,
+    "className": "",
+    "x": 190,
+    "y": 260,
+    "wires": [
+      [
+        "fn_tapo_brightness_payload"
+      ]
+    ]
+  },
+  {
+    "id": "fn_tapo_brightness_payload",
+    "type": "function",
+    "z": "tab_tapo_lab",
+    "name": "Payload brightness",
+    "func": "const value = Math.max(1, Math.min(100, Number(msg.payload || 1)));\nmsg.payload = { brightness: value };\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 260,
+    "wires": [
+      [
+        "tapo_brightness_node"
+      ]
+    ]
+  },
+  {
+    "id": "tapo_brightness_node",
+    "type": "tplink_brightness",
+    "z": "tab_tapo_lab",
+    "name": "Tapo Brightness",
+    "deviceIp": "",
+    "deviceAlias": "",
+    "deviceIpRange": "",
+    "searchMode": "ip",
+    "x": 650,
+    "y": 260,
+    "wires": [
+      [
+        "delay_tapo_refresh"
+      ]
+    ]
+  },
+  {
+    "id": "delay_tapo_refresh",
+    "type": "delay",
+    "z": "tab_tapo_lab",
+    "name": "Attendi sync device",
+    "pauseType": "delay",
+    "timeout": "2",
+    "timeoutUnits": "seconds",
+    "rate": "1",
+    "nbRateUnits": "1",
+    "rateUnits": "second",
+    "randomFirst": "1",
+    "randomLast": "5",
+    "randomUnits": "seconds",
+    "drop": false,
+    "allowrate": false,
+    "outputs": 1,
+    "x": 890,
+    "y": 200,
+    "wires": [
+      [
+        "tapo_status_node"
+      ]
+    ]
+  },
+  {
+    "id": "tapo_status_node",
+    "type": "tplink_status",
+    "z": "tab_tapo_lab",
+    "name": "Stato Tapo",
+    "deviceIp": "",
+    "deviceAlias": "",
+    "deviceIpRange": "",
+    "searchMode": "ip",
+    "x": 1110,
+    "y": 140,
+    "wires": [
+      [
+        "fn_tapo_status_text",
+        "fn_tapo_brightness_value",
+        "fn_tapo_state_to_mqtt",
+        "debug_tapo_status"
+      ]
+    ]
+  },
+  {
+    "id": "fn_tapo_status_text",
+    "type": "function",
+    "z": "tab_tapo_lab",
+    "name": "Testo stato lampadina",
+    "func": "const info = msg.payload?.tapoDeviceInfo || {};\nconst isOn = info.device_on === true;\nconst brightness = info.brightness ?? \"-\";\nmsg.payload = `Lampadina ${isOn ? \"ON\" : \"OFF\"} | Brightness=${brightness}`;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1360,
+    "y": 100,
+    "wires": [
+      [
+        "ui_text_tapo_status"
+      ]
+    ]
+  },
+  {
+    "id": "fn_tapo_brightness_value",
+    "type": "function",
+    "z": "tab_tapo_lab",
+    "name": "Valore brightness dashboard",
+    "func": "const info = msg.payload?.tapoDeviceInfo || {};\nconst value = Number(info.brightness ?? 0);\nif (!Number.isFinite(value)) {\n  return null;\n}\nmsg.payload = Math.max(1, Math.min(100, value));\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1380,
+    "y": 160,
+    "wires": [
+      [
+        "ui_gauge_tapo_brightness"
+      ]
+    ]
+  },
+  {
+    "id": "fn_tapo_state_to_mqtt",
+    "type": "function",
+    "z": "tab_tapo_lab",
+    "name": "Payload stato Tapo MQTT",
+    "func": "const info = msg.payload?.tapoDeviceInfo || {};\nmsg.topic = \"iot/lab/tapo/l530/status\";\nmsg.payload = {\n  device_on: info.device_on ?? null,\n  brightness: info.brightness ?? null,\n  model: info.model ?? null,\n  ip: info.ip ?? null,\n  timestamp: new Date().toISOString()\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1360,
+    "y": 220,
+    "wires": [
+      [
+        "mqtt_out_tapo_status"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt_out_tapo_status",
+    "type": "mqtt out",
+    "z": "tab_tapo_lab",
+    "name": "Pubblica stato Tapo MQTT",
+    "topic": "iot/lab/tapo/l530/status",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "application/json",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker_local",
+    "x": 1640,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "ui_text_tapo_status",
+    "type": "ui_text",
+    "z": "tab_tapo_lab",
+    "group": "ui_group_tapo_status",
+    "order": 1,
+    "width": "12",
+    "height": "1",
+    "name": "Stato lampadina Tapo",
+    "label": "Stato L530",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 1640,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "ui_gauge_tapo_brightness",
+    "type": "ui_gauge",
+    "z": "tab_tapo_lab",
+    "name": "Gauge brightness Tapo",
+    "group": "ui_group_tapo_status",
+    "order": 2,
+    "width": "6",
+    "height": "4",
+    "gtype": "gage",
+    "title": "Brightness L530",
+    "label": "%",
+    "format": "{{value}}",
+    "min": "1",
+    "max": "100",
+    "colors": [
+      "#00b500",
+      "#e6e600",
+      "#ca3838"
+    ],
+    "seg1": "40",
+    "seg2": "75",
+    "className": "",
+    "x": 1640,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "debug_tapo_status",
+    "type": "debug",
+    "z": "tab_tapo_lab",
+    "name": "Debug stato Tapo",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1370,
+    "y": 280,
     "wires": []
   }
 ]
