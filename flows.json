@@ -1,0 +1,444 @@
+[
+  {
+    "id": "tab_iot_lab",
+    "type": "tab",
+    "label": "IoT Lab - Power Monitor",
+    "disabled": false,
+    "info": "Simula dati sensore, calcola potenza, valuta soglia e pubblica su MQTT."
+  },
+  {
+    "id": "ui_tab_iot_lab",
+    "type": "ui_tab",
+    "name": "IoT Lab",
+    "icon": "dashboard",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "ui_group_power",
+    "type": "ui_group",
+    "name": "Monitor Potenza",
+    "tab": "ui_tab_iot_lab",
+    "order": 1,
+    "disp": true,
+    "width": "12",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "ui_group_status",
+    "type": "ui_group",
+    "name": "Stato Impianto",
+    "tab": "ui_tab_iot_lab",
+    "order": 2,
+    "disp": true,
+    "width": "12",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "mqtt_broker_local",
+    "type": "mqtt-broker",
+    "name": "Mosquitto Local",
+    "broker": "mosquitto",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "inject_sensor_tick",
+    "type": "inject",
+    "z": "tab_iot_lab",
+    "name": "Tick sensore ogni 5s",
+    "props": [
+      {
+        "p": "payload"
+      },
+      {
+        "p": "topic",
+        "vt": "str"
+      }
+    ],
+    "repeat": "5",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "1",
+    "topic": "iot/lab/sensor/tick",
+    "payload": "",
+    "payloadType": "date",
+    "x": 170,
+    "y": 120,
+    "wires": [
+      [
+        "fn_generate_sensor_data"
+      ]
+    ]
+  },
+  {
+    "id": "fn_generate_sensor_data",
+    "type": "function",
+    "z": "tab_iot_lab",
+    "name": "Genera valori sensori random",
+    "func": "const voltage = 220 + (Math.random() * 20 - 10);\nconst current = 2 + Math.random() * 8;\nconst powerFactor = 0.75 + Math.random() * 0.2;\n\nmsg.payload = {\n  voltage_v: Number(voltage.toFixed(2)),\n  current_a: Number(current.toFixed(2)),\n  power_factor: Number(powerFactor.toFixed(2)),\n  timestamp: new Date().toISOString()\n};\nmsg.topic = \"iot/lab/sensor/reading\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 450,
+    "y": 120,
+    "wires": [
+      [
+        "fn_calculate_power"
+      ]
+    ]
+  },
+  {
+    "id": "fn_calculate_power",
+    "type": "function",
+    "z": "tab_iot_lab",
+    "name": "Calcola potenza",
+    "func": "const data = msg.payload || {};\nconst voltage = Number(data.voltage_v || 0);\nconst current = Number(data.current_a || 0);\nconst pf = Number(data.power_factor || 0);\n\nconst apparentPower = voltage * current;\nconst activePower = apparentPower * pf;\nconst reactivePower = Math.sqrt(Math.max((apparentPower * apparentPower) - (activePower * activePower), 0));\n\nmsg.payload = {\n  voltage_v: voltage,\n  current_a: current,\n  power_factor: pf,\n  apparent_power_va: Number(apparentPower.toFixed(2)),\n  active_power_w: Number(activePower.toFixed(2)),\n  reactive_power_var: Number(reactivePower.toFixed(2)),\n  timestamp: data.timestamp || new Date().toISOString()\n};\nmsg.topic = \"iot/lab/power/metrics\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 700,
+    "y": 120,
+    "wires": [
+      [
+        "mqtt_out_metrics",
+        "switch_power_threshold",
+        "change_active_power_value",
+        "change_voltage_value",
+        "fn_build_detail_text"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt_out_metrics",
+    "type": "mqtt out",
+    "z": "tab_iot_lab",
+    "name": "Pubblica metriche MQTT",
+    "topic": "iot/lab/power/metrics",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "application/json",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker_local",
+    "x": 1000,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "switch_power_threshold",
+    "type": "switch",
+    "z": "tab_iot_lab",
+    "name": "Verifica soglia potenza",
+    "property": "payload.active_power_w",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "gte",
+        "v": "800",
+        "vt": "num"
+      },
+      {
+        "t": "lt",
+        "v": "800",
+        "vt": "num"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 2,
+    "x": 990,
+    "y": 120,
+    "wires": [
+      [
+        "change_status_high"
+      ],
+      [
+        "change_status_ok"
+      ]
+    ]
+  },
+  {
+    "id": "change_status_high",
+    "type": "change",
+    "z": "tab_iot_lab",
+    "name": "Stato: allarme",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload",
+        "pt": "msg",
+        "to": "ATTENZIONE: potenza sopra soglia",
+        "tot": "str"
+      },
+      {
+        "t": "set",
+        "p": "topic",
+        "pt": "msg",
+        "to": "iot/lab/power/status",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1260,
+    "y": 100,
+    "wires": [
+      [
+        "ui_text_status",
+        "mqtt_out_status"
+      ]
+    ]
+  },
+  {
+    "id": "change_status_ok",
+    "type": "change",
+    "z": "tab_iot_lab",
+    "name": "Stato: normale",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload",
+        "pt": "msg",
+        "to": "OK: potenza entro soglia",
+        "tot": "str"
+      },
+      {
+        "t": "set",
+        "p": "topic",
+        "pt": "msg",
+        "to": "iot/lab/power/status",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1260,
+    "y": 140,
+    "wires": [
+      [
+        "ui_text_status",
+        "mqtt_out_status"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt_out_status",
+    "type": "mqtt out",
+    "z": "tab_iot_lab",
+    "name": "Pubblica stato MQTT",
+    "topic": "",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker_local",
+    "x": 1540,
+    "y": 120,
+    "wires": []
+  },
+  {
+    "id": "change_active_power_value",
+    "type": "change",
+    "z": "tab_iot_lab",
+    "name": "Estrai active_power_w",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload",
+        "pt": "msg",
+        "to": "payload.active_power_w",
+        "tot": "msg"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1010,
+    "y": 220,
+    "wires": [
+      [
+        "ui_gauge_active_power"
+      ]
+    ]
+  },
+  {
+    "id": "change_voltage_value",
+    "type": "change",
+    "z": "tab_iot_lab",
+    "name": "Estrai voltage_v",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload",
+        "pt": "msg",
+        "to": "payload.voltage_v",
+        "tot": "msg"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 990,
+    "y": 280,
+    "wires": [
+      [
+        "ui_gauge_voltage"
+      ]
+    ]
+  },
+  {
+    "id": "fn_build_detail_text",
+    "type": "function",
+    "z": "tab_iot_lab",
+    "name": "Testo dettaglio dashboard",
+    "func": "const p = msg.payload;\nmsg.payload = `V=${p.voltage_v}V | I=${p.current_a}A | PF=${p.power_factor} | P=${p.active_power_w}W`;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1010,
+    "y": 340,
+    "wires": [
+      [
+        "ui_text_details"
+      ]
+    ]
+  },
+  {
+    "id": "ui_gauge_active_power",
+    "type": "ui_gauge",
+    "z": "tab_iot_lab",
+    "name": "Gauge Potenza Attiva",
+    "group": "ui_group_power",
+    "order": 1,
+    "width": "6",
+    "height": "4",
+    "gtype": "gage",
+    "title": "Potenza Attiva",
+    "label": "W",
+    "format": "{{value}}",
+    "min": 0,
+    "max": "2000",
+    "colors": [
+      "#00b500",
+      "#e6e600",
+      "#ca3838"
+    ],
+    "seg1": "800",
+    "seg2": "1200",
+    "className": "",
+    "x": 1290,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "ui_gauge_voltage",
+    "type": "ui_gauge",
+    "z": "tab_iot_lab",
+    "name": "Gauge Tensione",
+    "group": "ui_group_power",
+    "order": 2,
+    "width": "6",
+    "height": "4",
+    "gtype": "gage",
+    "title": "Tensione",
+    "label": "V",
+    "format": "{{value}}",
+    "min": "200",
+    "max": "240",
+    "colors": [
+      "#00b500",
+      "#e6e600",
+      "#ca3838"
+    ],
+    "seg1": "210",
+    "seg2": "230",
+    "className": "",
+    "x": 1270,
+    "y": 280,
+    "wires": []
+  },
+  {
+    "id": "ui_text_status",
+    "type": "ui_text",
+    "z": "tab_iot_lab",
+    "group": "ui_group_status",
+    "order": 1,
+    "width": "12",
+    "height": "1",
+    "name": "Indicatore soglia",
+    "label": "Stato",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 1540,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "ui_text_details",
+    "type": "ui_text",
+    "z": "tab_iot_lab",
+    "group": "ui_group_status",
+    "order": 2,
+    "width": "12",
+    "height": "1",
+    "name": "Dettaglio misure",
+    "label": "Ultima misura",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 1280,
+    "y": 340,
+    "wires": []
+  }
+]
