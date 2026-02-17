@@ -83,18 +83,24 @@ Dashboard disponibile su:
   - potenza attiva (`W`)
   - potenza reattiva (`var`)
 
-4. `Pubblica metriche MQTT` (`mqtt out`)
-- Pubblica JSON su topic `iot/lab/power/metrics`.
+4. `Pubblica dati raw MQTT` (`mqtt out`)
+- Pubblica dati grezzi su topic `iot/lab/power/raw`.
 
-5. `Verifica soglia potenza` (`switch`)
+5. `Pubblica metriche MQTT` (`mqtt out`)
+- Pubblica JSON con valori calcolati su topic `iot/lab/power/metrics`.
+
+6. `Verifica soglia potenza` (`switch`)
 - Se `active_power_w >= 800`: ramo allarme
 - Se `active_power_w < 800`: ramo normale
 
-6. `Stato: allarme` / `Stato: normale` (`change`)
+7. `Stato: allarme` / `Stato: normale` (`change`)
 - Imposta messaggio stato testuale e topic `iot/lab/power/status`.
 
-7. `Pubblica stato MQTT` (`mqtt out`)
+8. `Pubblica stato MQTT` (`mqtt out`)
 - Pubblica lo stato su MQTT.
+
+9. `Crea evento allarme` + `Pubblica allarme MQTT` (`function` + `mqtt out`)
+- In caso di superamento soglia, pubblica evento su `iot/lab/power/alarm`.
 
 ### Dashboard
 
@@ -102,6 +108,8 @@ Dashboard disponibile su:
 - `Estrai voltage_v` -> `Gauge Tensione` (`ui_gauge`)
 - `Indicatore soglia` (`ui_text`) mostra `OK`/`ATTENZIONE`
 - `Dettaglio misure` (`ui_text`) mostra riepilogo misura
+- `Indicatore raw` (`ui_text`) mostra l'ultimo pacchetto grezzo generato
+- `Indicatore ultimo allarme` (`ui_text`) mostra l'ultimo evento sopra soglia
 
 ## Configurazione Mosquitto
 
@@ -128,7 +136,11 @@ In `mosquitto/mosquitto.conf`:
 ### MQTT topic naming
 
 - Usa namespace stabili: `<org>/<site>/<device>/<metric>`
-- Esempio: `iot/lab/power/metrics`, `iot/lab/power/status`
+- Esempi usati in questo lab:
+  - `iot/lab/power/raw`
+  - `iot/lab/power/metrics`
+  - `iot/lab/power/status`
+  - `iot/lab/power/alarm`
 - Mantieni convenzione coerente (`snake_case` o `kebab-case`, non mista).
 - Se utile, separa topic telemetria da comandi:
   - `.../telemetry/...`

@@ -112,7 +112,29 @@
     "y": 120,
     "wires": [
       [
-        "fn_calculate_power"
+        "fn_calculate_power",
+        "mqtt_out_raw",
+        "fn_build_raw_text"
+      ]
+    ]
+  },
+  {
+    "id": "fn_build_raw_text",
+    "type": "function",
+    "z": "tab_iot_lab",
+    "name": "Testo dati raw",
+    "func": "const p = msg.payload || {};\nconst ts = p.timestamp ? String(p.timestamp).slice(11, 19) : \"--:--:--\";\nmsg.payload = `RAW V=${p.voltage_v} I=${p.current_a} PF=${p.power_factor} @${ts}`;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 730,
+    "y": 20,
+    "wires": [
+      [
+        "ui_text_raw"
       ]
     ]
   },
@@ -139,6 +161,24 @@
         "fn_build_detail_text"
       ]
     ]
+  },
+  {
+    "id": "mqtt_out_raw",
+    "type": "mqtt out",
+    "z": "tab_iot_lab",
+    "name": "Pubblica dati raw MQTT",
+    "topic": "iot/lab/power/raw",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "application/json",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker_local",
+    "x": 730,
+    "y": 60,
+    "wires": []
   },
   {
     "id": "mqtt_out_metrics",
@@ -184,12 +224,72 @@
     "y": 120,
     "wires": [
       [
-        "change_status_high"
+        "change_status_high",
+        "fn_build_alarm_event"
       ],
       [
         "change_status_ok"
       ]
     ]
+  },
+  {
+    "id": "fn_build_alarm_event",
+    "type": "function",
+    "z": "tab_iot_lab",
+    "name": "Crea evento allarme",
+    "func": "const p = msg.payload || {};\nmsg.topic = \"iot/lab/power/alarm\";\nmsg.payload = {\n  severity: \"high\",\n  threshold_w: 800,\n  active_power_w: p.active_power_w,\n  voltage_v: p.voltage_v,\n  current_a: p.current_a,\n  power_factor: p.power_factor,\n  timestamp: p.timestamp || new Date().toISOString(),\n  message: \"ATTENZIONE: potenza sopra soglia\"\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1260,
+    "y": 60,
+    "wires": [
+      [
+        "mqtt_out_alarm",
+        "fn_build_alarm_text"
+      ]
+    ]
+  },
+  {
+    "id": "fn_build_alarm_text",
+    "type": "function",
+    "z": "tab_iot_lab",
+    "name": "Testo ultimo allarme",
+    "func": "const p = msg.payload || {};\nconst ts = p.timestamp ? String(p.timestamp).slice(11, 19) : \"--:--:--\";\nmsg.payload = `ALLARME P=${p.active_power_w}W @${ts}`;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1540,
+    "y": 20,
+    "wires": [
+      [
+        "ui_text_alarm"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt_out_alarm",
+    "type": "mqtt out",
+    "z": "tab_iot_lab",
+    "name": "Pubblica allarme MQTT",
+    "topic": "iot/lab/power/alarm",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "application/json",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker_local",
+    "x": 1540,
+    "y": 60,
+    "wires": []
   },
   {
     "id": "change_status_high",
@@ -439,6 +539,40 @@
     "className": "",
     "x": 1280,
     "y": 340,
+    "wires": []
+  },
+  {
+    "id": "ui_text_raw",
+    "type": "ui_text",
+    "z": "tab_iot_lab",
+    "group": "ui_group_status",
+    "order": 3,
+    "width": "12",
+    "height": "1",
+    "name": "Indicatore raw",
+    "label": "Ultimo raw",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 990,
+    "y": 20,
+    "wires": []
+  },
+  {
+    "id": "ui_text_alarm",
+    "type": "ui_text",
+    "z": "tab_iot_lab",
+    "group": "ui_group_status",
+    "order": 4,
+    "width": "12",
+    "height": "1",
+    "name": "Indicatore ultimo allarme",
+    "label": "Ultimo allarme",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 1780,
+    "y": 20,
     "wires": []
   }
 ]
