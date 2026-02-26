@@ -1,6 +1,7 @@
 # IoT Lab con Docker, Mosquitto e Node-RED
 
 Questo progetto crea un laboratorio IoT locale con:
+
 - broker MQTT `Mosquitto`
 - orchestrazione flow e dashboard con `Node-RED`
 
@@ -52,6 +53,7 @@ docker restart iot-lab-nodered
 ```
 
 Alternativa da UI Node-RED:
+
 - Menu `Manage palette` -> `Install` -> cerca `node-red-dashboard`.
 
 ## Importare il flow `flows.json`
@@ -62,6 +64,7 @@ Alternativa da UI Node-RED:
 4. Conferma import e clicca `Deploy`
 
 Dashboard disponibile su:
+
 - `http://localhost:1880/ui`
 
 ## Cosa fa il flow (nodo per nodo)
@@ -69,37 +72,46 @@ Dashboard disponibile su:
 ### Pipeline principale
 
 1. `Tick sensore ogni 5s` (`inject`)
+
 - Emette un trigger ogni 5 secondi.
 
 2. `Genera valori sensori random` (`function`)
+
 - Simula dati elettrici:
   - tensione (`voltage_v`)
   - corrente (`current_a`)
   - power factor (`power_factor`)
 
 3. `Calcola potenza` (`function`)
+
 - Calcola:
   - potenza apparente (`VA`)
   - potenza attiva (`W`)
   - potenza reattiva (`var`)
 
 4. `Pubblica dati raw MQTT` (`mqtt out`)
+
 - Pubblica dati grezzi su topic `iot/lab/power/raw`.
 
 5. `Pubblica metriche MQTT` (`mqtt out`)
+
 - Pubblica JSON con valori calcolati su topic `iot/lab/power/metrics`.
 
 6. `Verifica soglia potenza` (`switch`)
+
 - Se `active_power_w >= 800`: ramo allarme
 - Se `active_power_w < 800`: ramo normale
 
 7. `Stato: allarme` / `Stato: normale` (`change`)
+
 - Imposta messaggio stato testuale e topic `iot/lab/power/status`.
 
 8. `Pubblica stato MQTT` (`mqtt out`)
+
 - Pubblica lo stato su MQTT.
 
 9. `Crea evento allarme` + `Pubblica allarme MQTT` (`function` + `mqtt out`)
+
 - In caso di superamento soglia, pubblica evento su `iot/lab/power/alarm`.
 
 ### Dashboard
@@ -114,12 +126,14 @@ Dashboard disponibile su:
 ## Integrazione Tapo L530 (controllo reale)
 
 Il file `flows.json` include anche un tab `Tapo Lab - Lampadina` con:
+
 - poll periodico stato lampadina
 - controllo ON/OFF da dashboard
 - controllo brightness da dashboard
 - publish stato su topic MQTT `iot/lab/tapo/l530/status`
 
 Per usare i nodi Tapo:
+
 1. Installa `node-red-contrib-tplink-tapo-connect-api` nel container Node-RED.
 2. Importa `flows.json` e fai deploy.
 3. Apri i nodi `tplink_status`, `tplink_turn_on`, `tplink_turn_off`, `tplink_brightness`.
@@ -127,12 +141,14 @@ Per usare i nodi Tapo:
 5. Inserisci le credenziali account Tapo richieste dai nodi.
 
 Nota sicurezza:
+
 - Le credenziali Tapo non vanno committate su Git.
 - Tienile solo nella configurazione runtime di Node-RED (`flows_cred.json`).
 
 ## Configurazione Mosquitto
 
 In `mosquitto/mosquitto.conf`:
+
 - `listener 1883`: porta MQTT standard
 - `allow_anonymous true`: accesso senza credenziali (solo laboratorio)
 - log su volume persistente (`/mosquitto/log/mosquitto.log`)
@@ -187,4 +203,3 @@ Se vuoi lavorare sempre con tool coerenti in VS Code, puoi aggiungere:
 ```
 
 Nota: è uno snippet di base, da adattare alla tua struttura `.devcontainer/`.
-prova di push 
